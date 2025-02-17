@@ -1,0 +1,39 @@
+{
+  "appId": "com.electron-course.adb",
+  "productName": "ADB Easy",
+  "directories": {
+    "output": "release/${version}"
+  },
+  "files": ["dist-electron"],
+  "icon": "./desktopIcon.png",
+  "mac": {
+    "target": [
+      "dmg",
+      "zip"
+    ],
+    "artifactName": "${productName}-${version}-Mac-${arch}.${ext}"
+  },
+
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64"]
+      }
+    ],
+    "artifactName": "${productName}-${version}-win-${arch}.${ext}"
+  },
+  "nsis": {
+    "artifactName": "${productName}-${version}-win-setup-${arch}.${ext}",
+    "shortcutName": "${productName}",
+    "uninstallDisplayName": "${productName}",
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "deleteAppDataOnUninstall": false
+  }
+}

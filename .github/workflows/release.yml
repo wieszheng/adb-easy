@@ -1,0 +1,46 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}-latest
+
+    strategy:
+      matrix:
+        os: [ windows, macos ]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Electron app
+        run: |
+          npm run build:main
+          npm run build:preload
+          npm run build:renderer
+          npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          path: |
+            release/**/*.dmg
+            release/**/*.exe
+            release/**/*.zip
+            release/**/*.AppImage
+            !release/**/win-unpacked/
