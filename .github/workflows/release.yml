@@ -37,7 +37,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}
+          name: ADB Easy-${{ matrix.os }}
           path: |
             release/**/*.dmg
             release/**/*.exe

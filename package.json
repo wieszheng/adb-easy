@@ -2,7 +2,7 @@
   "name": "adb-easy",
   "private": true,
   "version": "0.1.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "ADB Easy An Electron application with React and TypeScript",
   "type": "module",
   "main": "dist-electron/main/index.cjs",
   "author": "wieszheng",
