@@ -1,5 +1,4 @@
 import Adb, { Client, Device } from "@devicefarmer/adbkit";
-import * as logcat from "adbkit-logcat";
 import androidDeviceList from "android-device-list";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -123,6 +122,7 @@ export async function getOverview(deviceId: string) {
     ...(await getScreen(deviceId)),
   };
 }
+
 function getPropValue(key: string, str: string) {
   const lines = str.split("\n");
   for (let i = 0, len = lines.length; i < len; i++) {
@@ -161,6 +161,7 @@ async function getScreen(deviceId: string) {
     physicalDensity,
   };
 }
+
 async function getMemory(deviceId: string) {
   const memInfo: string = (
     await Adb.util.readAll(
@@ -185,6 +186,7 @@ async function getMemory(deviceId: string) {
     memUsed: memTotal - memFree,
   };
 }
+
 async function getStorage(deviceId: string) {
   const storageInfo: string = (
     await Adb.util.readAll(
@@ -220,6 +222,7 @@ export async function getPackages(deviceId: string, system = true) {
     .split("\n")
     .map((line) => line.slice(8));
 }
+
 export async function stopPackage(deviceId: string, pkg: string) {
   await Adb.util.readAll(
     await client.getDevice(deviceId).shell(`am force-stop ${pkg}`),
@@ -248,6 +251,7 @@ export async function uninstallPackage(deviceId: string, pkg: string) {
   const device = client.getDevice(deviceId);
   await device.uninstall(pkg);
 }
+
 export async function disablePackage(deviceId: string, pkg: string) {
   await Adb.util.readAll(
     await client.getDevice(deviceId).shell(`pm disable-user ${pkg}`),
@@ -259,6 +263,7 @@ export async function enablePackage(deviceId: string, pkg: string) {
     await client.getDevice(deviceId).shell(`pm enable ${pkg}`),
   );
 }
+
 async function getMainComponent(deviceId: string, pkg: string) {
   const result: string = (
     await Adb.util.readAll(
@@ -275,6 +280,7 @@ async function getMainComponent(deviceId: string, pkg: string) {
     }
   }
 }
+
 export async function pullFile(deviceId: string, path: string, dest: string) {
   const device = client.getDevice(deviceId);
   const transfer = await device.pull(path);
@@ -289,6 +295,7 @@ export async function pullFile(deviceId: string, path: string, dest: string) {
     }
   });
 }
+
 export async function pullApk(deviceId: string, pkg: string, dest: string) {
   const result: string = (
     await Adb.util.readAll(
@@ -477,34 +484,82 @@ export async function getCpuUsage(deviceId: string, pkg: string) {
     return 0;
   }
   const trimmedPid = pid.trim();
-  const result = await deviceShell(deviceId, `top -n 1 -p ${trimmedPid}`);
-  const lines = result.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.includes(trimmedPid)) {
-      const parts = line.trim().split(/\s+/);
-      if (parts.length >= 9) {
-        const cpuUsage = parseFloat(parts[8]);
-        const memoryUsage = parseFloat(parts[6]);
-        // let memoryUsage = 0;
+  const result = await deviceShell(
+    deviceId,
+    `top -n 1 -p ${trimmedPid} -o %CPU -b -q`,
+  );
+  if (!result) {
+    return 0;
+  }
+  return parseFloat(result.trim());
+}
 
-        // if (memoryUsageStr.endsWith("M")) {
-        //   memoryUsage = parseFloat(memoryUsageStr.slice(0, -1)) * 1024 * 1024;
-        // } else if (memoryUsageStr.endsWith("K")) {
-        //   memoryUsage = parseFloat(memoryUsageStr.slice(0, -1)) * 1024;
-        // } else if (memoryUsageStr.endsWith("G")) {
-        //   memoryUsage =
-        //     parseFloat(memoryUsageStr.slice(0, -1)) * 1024 * 1024 * 1024;
-        // } else {
-        //   memoryUsage = parseFloat(memoryUsageStr);
-        // }
+interface MemData {
+  [key: string]: number;
+}
 
-        console.log(`CPU usage for ${pkg}: ${cpuUsage}%`);
-        console.log(`Memory usage for ${pkg}: ${memoryUsage} bytes`);
-        return { cpuUsage, memoryUsage };
+const MEM_DATA_TEMPLATE: MemData = {
+  "Java Heap": 0,
+  "Native Heap": 0,
+  Code: 0,
+  Stack: 0,
+  Graphics: 0,
+  "Private Other": 0,
+  System: 0,
+  "TOTAL PSS": 0,
+};
+
+export async function getMemoryUsage(deviceId: string, pkg: string) {
+  const result = await deviceShell(
+    deviceId,
+    `dumpsys meminfo --local -s --package ${pkg}`,
+  );
+  if (result.startsWith("No Process")) {
+    return null;
+  }
+  const memMap: { [processName: string]: MemData } = {};
+  let processName = "";
+
+  for (const line of result.split("\n")) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith("** MEMINFO")) {
+      const match = trimmedLine.match(/\[(.*)\]/);
+      if (match) {
+        processName = match[1];
+        memMap[processName] = { ...MEM_DATA_TEMPLATE };
+      }
+    } else {
+      const lineData = trimmedLine.split(":");
+      try {
+        for (const key in MEM_DATA_TEMPLATE) {
+          if (trimmedLine.startsWith(key) && key !== "TOTAL PSS") {
+            const data = lineData[1].split();
+            memMap[processName][key] =
+              Math.round((parseInt(data[0], 10) / 1024) * 10) / 10;
+            break;
+          }
+        }
+      } catch (e) {
+        console.error(`解析内存数据失败: ${trimmedLine}`);
+        console.error(`错误信息: ${e.message}`);
       }
     }
   }
+  for (const name in memMap) {
+    if (Object.prototype.hasOwnProperty.call(memMap, name)) {
+      let sum = 0;
+      for (const key in memMap[name]) {
+        if (
+          Object.prototype.hasOwnProperty.call(memMap[name], key) &&
+          key !== "TOTAL PSS"
+        ) {
+          sum += memMap[name][key];
+        }
+      }
+      memMap[name]["TOTAL PSS"] = Math.round(sum * 10) / 10;
+    }
+  }
+  return memMap || null;
 }
 
 interface LogEntry {
@@ -590,4 +645,53 @@ export async function clearLogcat(deviceId: string) {
 
     process.on("error", reject);
   });
+}
+
+export async function getNetworkTraffic(device: string, packageName: string) {
+  try {
+    // 首先获取应用的 UID
+    const uidCmd = await deviceShell(
+      device,
+      `dumpsys package ${packageName} | grep userId=`
+    );
+    const uidMatch = uidCmd.match(/userId=(\d+)/);
+    if (!uidMatch) {
+      console.error("无法获取应用 UID");
+      return { rx: 0, tx: 0 };
+    }
+    const uid = uidMatch[1];
+
+    // 使用 dumpsys netstats 命令获取流量数据
+    const result = await deviceShell(
+      device,
+      `dumpsys netstats | grep -E "uid ${uid}|rb.*tx.*bytes"`
+    );
+
+    let rx = 0;
+    let tx = 0;
+
+    // 解析流量数据
+    const lines = result.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.includes(`uid ${uid}`)) {
+        const nextLine = lines[i + 1]?.trim();
+        if (nextLine && nextLine.includes('rb')) {
+          const matches = nextLine.match(/rb=(\d+) rp=\d+ tb=(\d+)/);
+          if (matches) {
+            rx += parseInt(matches[1], 10);
+            tx += parseInt(matches[2], 10);
+          }
+        }
+      }
+    }
+
+    return {
+      rx: Math.round((rx / 1024) * 100) / 100, // 转换为 KB 并保留两位小数
+      tx: Math.round((tx / 1024) * 100) / 100,
+    };
+  } catch (error) {
+    console.error("获取流量数据失败:", error);
+    return { rx: 0, tx: 0 };
+  }
 }

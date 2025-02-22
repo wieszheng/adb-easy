@@ -1,7 +1,7 @@
 {
   "name": "adb-easy",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ADB Easy An Electron application with React and TypeScript",
   "type": "module",
   "main": "dist-electron/main/index.cjs",
@@ -42,7 +42,7 @@
     "cmdk": "^1.0.0",
     "cobe": "^0.6.3",
     "lucide-react": "^0.475.0",
-    "motion": "^12.4.2",
+    "motion": "^12.4.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.15.1",

@@ -27,6 +27,8 @@ import {
   getCpuUsage,
   startLogcat,
   clearLogcat,
+  getMemoryUsage,
+  getNetworkTraffic,
 } from "./adb";
 import { createTray } from "./tray";
 
@@ -174,7 +176,9 @@ app.on("ready", () => {
   ipcMain.handle("getCpuUsage", async (_, deviceId, pkg) => {
     return await getCpuUsage(deviceId, pkg);
   });
-
+  ipcMain.handle("getMemoryUsage", async (_, deviceId, pkg) => {
+    return await getMemoryUsage(deviceId, pkg);
+  });
   ipcMain.handle("startLogcat", async (event, deviceId) => {
     try {
       (event.sender as ExtendedWebContents).logcatProcess = await startLogcat(
@@ -204,7 +208,7 @@ app.on("ready", () => {
     }
   });
 
-  ipcMain.handle("clearLogcat", async (event, deviceId) => {
+  ipcMain.handle("clearLogcat", async (_, deviceId) => {
     try {
       await clearLogcat(deviceId);
       return true;
@@ -213,4 +217,11 @@ app.on("ready", () => {
       return false;
     }
   });
+
+  ipcMain.handle(
+    "getNetworkTraffic",
+    async (_, device: string, packageName: string) => {
+      return await getNetworkTraffic(device, packageName);
+    },
+  );
 });

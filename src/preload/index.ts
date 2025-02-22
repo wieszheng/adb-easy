@@ -87,9 +87,14 @@ const electronHandler = {
   getCpuUsage: (deviceId: string, pkg: string) => {
     return ipcRenderer.invoke("getCpuUsage", deviceId, pkg);
   },
+  getMemoryUsage: (deviceId: string, pkg: string) => {
+    return ipcRenderer.invoke("getMemoryUsage", deviceId, pkg);
+  },
   getLogcat: (deviceId: string) => {
     return ipcRenderer.invoke("getLogcat", deviceId);
   },
+  getNetworkTraffic: (device: string, packageName: string) =>
+    ipcRenderer.invoke("getNetworkTraffic", device, packageName),
 };
 
 contextBridge.exposeInMainWorld("main", electronHandler);
