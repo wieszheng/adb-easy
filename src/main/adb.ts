@@ -647,51 +647,74 @@ export async function clearLogcat(deviceId: string) {
   });
 }
 
-export async function getNetworkTraffic(device: string, packageName: string) {
+let firstData: number | null = null;
+let lastResult: number = 0;
+export async function getCurrentFlow(deviceId: string, packageName: string) {
   try {
     // 首先获取应用的 UID
     const uidCmd = await deviceShell(
-      device,
-      `dumpsys package ${packageName} | grep userId=`
+      deviceId,
+      `dumpsys package ${packageName} | grep userId=`,
     );
     const uidMatch = uidCmd.match(/userId=(\d+)/);
     if (!uidMatch) {
       console.error("无法获取应用 UID");
-      return { rx: 0, tx: 0 };
+      return 0;
     }
     const uid = uidMatch[1];
-
-    // 使用 dumpsys netstats 命令获取流量数据
     const result = await deviceShell(
-      device,
-      `dumpsys netstats | grep -E "uid ${uid}|rb.*tx.*bytes"`
+      deviceId,
+      `cat /proc/net/xt_qtaguid/stats | grep ${uid}`,
     );
+    const flowDataList = result
+      .split("\n")
+      .filter((line) => line.trim() !== "");
+    if (
+      flowDataList.some((line) => line.includes("No such file or directory"))
+    ) {
+      console.error("No such file or directory for FLOW");
+      return 0;
+    }
+    const titleResult = await deviceShell(
+      deviceId,
+      `cat /proc/net/xt_qtaguid/stats`,
+    );
+    const titleList = titleResult.split("\n")[0].trim().split(" ");
 
-    let rx = 0;
-    let tx = 0;
+    const rxIndex = titleList.indexOf("rx_bytes");
+    const txIndex = titleList.indexOf("tx_bytes");
+    const ifaceIndex = titleList.indexOf("iface");
+    const uidTagIntIndex = titleList.indexOf("uid_tag_int");
 
-    // 解析流量数据
-    const lines = result.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.includes(`uid ${uid}`)) {
-        const nextLine = lines[i + 1]?.trim();
-        if (nextLine && nextLine.includes('rb')) {
-          const matches = nextLine.match(/rb=(\d+) rp=\d+ tb=(\d+)/);
-          if (matches) {
-            rx += parseInt(matches[1], 10);
-            tx += parseInt(matches[2], 10);
-          }
-        }
-      }
+    if (
+      rxIndex === -1 ||
+      txIndex === -1 ||
+      ifaceIndex === -1 ||
+      uidTagIntIndex === -1
+    ) {
+      return 0;
     }
 
-    return {
-      rx: Math.round((rx / 1024) * 100) / 100, // 转换为 KB 并保留两位小数
-      tx: Math.round((tx / 1024) * 100) / 100,
-    };
+    let currentFlow = 0;
+
+    for (const data of flowDataList) {
+      const data1 = data.trim().split(" ");
+      if (data1[ifaceIndex] === "wlan0" && data1[uidTagIntIndex] === uid) {
+        const rxData = parseInt(data1[rxIndex], 10);
+        const txData = parseInt(data1[txIndex], 10);
+        currentFlow += rxData + txData;
+      }
+    }
+    if (firstData === null) {
+      firstData = currentFlow;
+      return 0; // 初始化后直接返回0
+    }
+    lastResult += (currentFlow - firstData) / 1024 / 1024;
+    firstData = currentFlow;
+
+    return Math.round(lastResult);
   } catch (error) {
-    console.error("获取流量数据失败:", error);
-    return { rx: 0, tx: 0 };
+    console.error("Error getting network traffic:", error);
+    return 0;
   }
 }

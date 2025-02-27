@@ -28,7 +28,7 @@ import {
   startLogcat,
   clearLogcat,
   getMemoryUsage,
-  getNetworkTraffic,
+  getCurrentFlow,
 } from "./adb";
 import { createTray } from "./tray";
 
@@ -64,8 +64,8 @@ app.on("ready", () => {
     },
   });
 
-  // mainWindow.loadURL("http://localhost:5173");
-  mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+  mainWindow.loadURL("http://localhost:5173");
+  // mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   createTray(mainWindow);
   let willClose = false;
   mainWindow.on("close", (e) => {
@@ -219,9 +219,9 @@ app.on("ready", () => {
   });
 
   ipcMain.handle(
-    "getNetworkTraffic",
-    async (_, device: string, packageName: string) => {
-      return await getNetworkTraffic(device, packageName);
+    "getCurrentFlow",
+    async (_, deviceId: string, packageName: string) => {
+      return await getCurrentFlow(deviceId, packageName);
     },
   );
 });

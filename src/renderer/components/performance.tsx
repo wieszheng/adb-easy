@@ -47,11 +47,10 @@ export function Performance() {
       };
     }[]
   >([]);
-  const [networkData, setNetworkData] = useState<
+  const [flowData, setFlowData] = useState<
     {
       date: string;
-      rx: number;
-      tx: number;
+      flow: number;
     }[]
   >([]);
 
@@ -84,20 +83,20 @@ export function Performance() {
           selectedPackage,
         );
         console.log("memUsage", memUsage);
-        const networkUsage = await window.main.getNetworkTraffic(
+        const flowUsage = await window.main.getCurrentFlow(
           currentDevice!,
           selectedPackage,
         );
-        console.log("networkUsage", networkUsage);
+        console.log("flowUsage", flowUsage);
         setFpsData((prevData) => [...prevData, { date: now, fps: fpsUsage }]);
         setCpuData((prevData) => [...prevData, { date: now, cpu: cpuUsage }]);
         setMemData((prevData) => [
           ...prevData,
           { date: now, values: memUsage },
         ]);
-        setNetworkData((prevData) => [
+        setFlowData((prevData) => [
           ...prevData,
-          { date: now, rx: networkUsage.rx, tx: networkUsage.tx },
+          { date: now, flow: flowUsage },
         ]);
       };
 
@@ -191,91 +190,6 @@ export function Performance() {
         <Card className="mr-1">
           <CardHeader className="border-b py-5 sm:flex-row">
             <CardTitle className="flex items-center gap-2">
-              <Badge className="h-5 px-2">CPU</Badge>
-              {selectedPackage}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Chart
-              series={[
-                {
-                  name: "CPU Usage",
-                  data: cpuData.map((item) => ({
-                    date: item.date,
-                    value: item.cpu,
-                  })),
-                  color: "rgb(255, 70, 131)",
-                  gradientColors: ["rgb(255, 158, 68)", "rgb(255, 70, 131)"],
-                },
-              ]}
-              title="CPU Usage"
-              unit="%"
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="mr-1">
-          <CardHeader className="border-b py-5 sm:flex-row">
-            <CardTitle className="flex items-center gap-2">
-              <Badge className="h-5 px-2">FPS</Badge>
-              {selectedPackage}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Chart
-              series={[
-                {
-                  name: "FPS",
-                  data: fpsData.map((item) => ({
-                    date: item.date,
-                    value: item.fps,
-                  })),
-                  color: "rgb(52, 152, 219)",
-                  gradientColors: ["rgb(103, 194, 238)", "rgb(52, 152, 219)"],
-                },
-              ]}
-              title="FPS"
-              unit=""
-            />
-          </CardContent>
-        </Card>
-        <Card className="mr-1">
-          <CardHeader className="border-b py-5 sm:flex-row">
-            <CardTitle className="flex items-center gap-2">
-              <Badge className="h-5 px-2">Network</Badge>
-              {selectedPackage}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Chart
-              series={[
-                {
-                  name: "接收流量",
-                  data: networkData.map((item) => ({
-                    date: item.date,
-                    value: item.rx,
-                  })),
-                  color: "rgb(46, 204, 113)",
-                  gradientColors: ["rgb(127, 224, 196)", "rgb(46, 204, 113)"],
-                },
-                {
-                  name: "发送流量",
-                  data: networkData.map((item) => ({
-                    date: item.date,
-                    value: item.tx,
-                  })),
-                  color: "rgb(52, 152, 219)",
-                  gradientColors: ["rgb(103, 194, 238)", "rgb(52, 152, 219)"],
-                },
-              ]}
-              title="Network Traffic"
-              unit="KB"
-            />
-          </CardContent>
-        </Card>
-        <Card className="mr-1">
-          <CardHeader className="border-b py-5 sm:flex-row">
-            <CardTitle className="flex items-center gap-2">
               <Badge className="h-5 px-2">Mem</Badge>
               {selectedPackage}
             </CardTitle>
@@ -365,6 +279,81 @@ export function Performance() {
                   </div>
                 ),
               )}
+          </CardContent>
+        </Card>
+        <Card className="mr-1">
+          <CardHeader className="border-b py-5 sm:flex-row">
+            <CardTitle className="flex items-center gap-2">
+              <Badge className="h-5 px-2">CPU</Badge>
+              {selectedPackage}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Chart
+              series={[
+                {
+                  name: "CPU Usage",
+                  data: cpuData.map((item) => ({
+                    date: item.date,
+                    value: item.cpu,
+                  })),
+                  color: "rgb(255, 70, 131)",
+                  gradientColors: ["rgb(255, 158, 68)", "rgb(255, 70, 131)"],
+                },
+              ]}
+              title="CPU Usage"
+              unit="%"
+            />
+          </CardContent>
+        </Card>
+        <Card className="mr-1">
+          <CardHeader className="border-b py-5 sm:flex-row">
+            <CardTitle className="flex items-center gap-2">
+              <Badge className="h-5 px-2">FPS</Badge>
+              {selectedPackage}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Chart
+              series={[
+                {
+                  name: "FPS",
+                  data: fpsData.map((item) => ({
+                    date: item.date,
+                    value: item.fps,
+                  })),
+                  color: "rgb(52, 152, 219)",
+                  gradientColors: ["rgb(103, 194, 238)", "rgb(52, 152, 219)"],
+                },
+              ]}
+              title="FPS"
+              unit=""
+            />
+          </CardContent>
+        </Card>
+        <Card className="mr-1">
+          <CardHeader className="border-b py-5 sm:flex-row">
+            <CardTitle className="flex items-center gap-2">
+              <Badge className="h-5 px-2">Flow</Badge>
+              {selectedPackage}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Chart
+              series={[
+                {
+                  name: "Flow",
+                  data: flowData.map((item) => ({
+                    date: item.date,
+                    value: item.flow,
+                  })),
+                  color: "rgb(46, 204, 113)",
+                  gradientColors: ["rgb(127, 224, 196)", "rgb(46, 204, 113)"],
+                },
+              ]}
+              title="Flow"
+              unit="MB"
+            />
           </CardContent>
         </Card>
       </div>

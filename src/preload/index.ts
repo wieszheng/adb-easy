@@ -93,8 +93,8 @@ const electronHandler = {
   getLogcat: (deviceId: string) => {
     return ipcRenderer.invoke("getLogcat", deviceId);
   },
-  getNetworkTraffic: (device: string, packageName: string) =>
-    ipcRenderer.invoke("getNetworkTraffic", device, packageName),
+  getCurrentFlow: (deviceId: string, packageName: string) =>
+    ipcRenderer.invoke("getCurrentFlow", deviceId, packageName),
 };
 
 contextBridge.exposeInMainWorld("main", electronHandler);
